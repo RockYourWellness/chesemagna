@@ -1,15 +1,15 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Forza il protocollo REST: elimina i blocchi di rete su Streamlit Cloud
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"], transport="rest")
+# Configurazione API da Secrets
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
 st.title("Che se magna")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, aromatica e su misura.")
 
-# --- MODULO FISSO (Nessuna chat, campi puliti per il paziente) ---
+# --- MODULO FISSO ---
 with st.form("modulo_ricetta"):
     st.subheader("1. Gli alimenti del tuo pasto")
     col_c, col_p, col_v = st.columns(3)
@@ -43,61 +43,53 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE RICETTA ---
+# --- GENERAZIONE ULTRA-RAPIDA (1-2 SECONDI) ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("Creazione della ricetta in corso..."):
+        with st.spinner("Creazione della ricetta..."):
             
-            prompt_ricetta = f"""
-            Sei uno chef specializzato in nutrizione sana, sostenibile e priva di paranoie.
+            prompt_rapido = f"""
+            Sei uno chef nutrizionista pratico e conciso. Crea una ricetta sfiziosa e veloce.
             
-            DATI DEL PASTO FORNITI DAL PAZIENTE:
-            - Carboidrati: {carboidrati}
-            - Proteine: {proteine}
-            - Verdure: {verdure}
-            - Tempo a disposizione: {tempo}
-            - Voglia sensoriale: {voglia}
-            - Metodi di cottura tassativamente ammessi: {', '.join(metodi_scelti)}
+            DATI:
+            - Carboidrati: {carboidrati} | Proteine: {proteine} | Verdure: {verdure}
+            - Tempo: {tempo} | Voglia: {voglia}
+            - Strumenti concessi: {', '.join(metodi_scelti)}
 
-            VINCOLI E LINEE GUIDA:
-            1. Usa SOLO i metodi di cottura indicati ({', '.join(metodi_scelti)}). Se l'utente non ha spuntato il forno, non proporre mai cotture al forno.
-            2. Se il tempo è '10-15 minuti', ipotizza riso o cereali precotti o tagli ultra-sottili.
-            3. Suggerisci attivamente spezie, erbe aromatiche e condimenti furbi (limone, yogurt bianco naturale, aceto, salsa di soia, semi) per assecondare la voglia richiesta senza appesantire.
-            4. Inserisci sempre una sezione finale con SOSTITUZIONI pratiche per le spezie e i condimenti suggeriti, per chi ha la dispensa mezza vuota.
-            5. Nessun tabù sgradevole (vietata pasta con il pollo) e nessun conteggio o paranoia calorica.
+            REGOLE:
+            - Usa SOLO gli strumenti concessi. Se tempo <= 15 min, ipotizza cereali precotti.
+            - Niente paranoie caloriche o divieti assurdi (no pasta col pollo).
+            - Sii conciso e diretto: massimo 200 parole in totale, zero preamboli.
 
-            FORMATO DI RISPOSTA:
-            🍽️ **[Nome invitante del piatto]**
-            ⏱️ **[Tempo stimato]** | 🍳 **Strumento:** [Solo uno tra {', '.join(metodi_scelti)}]
-            💡 *[1 frase breve sul perché questa combinazione appaga la voglia del giorno]*
+            STRUTTURA:
+            🍽️ **[Nome Piatto]**
+            ⏱️ [Tempo] | 🍳 Strumento: [Uno tra {', '.join(metodi_scelti)}]
+            💡 *[1 riga sul gusto]*
 
-            🛒 **Ingredienti usati:**
-            - [Carboidrati, Proteine, Verdure indicati dal paziente]
-            - [Spezie ed erbette consigliate per dare sapore]
-
-            👨‍🍳 **Passaggi Facili:**
-            1. [Passo 1: taglio/aromatizzazione]
-            2. [Passo 2: cottura con lo strumento ammesso]
-            3. [Passo 3: mantecatura, emulsione o tocco finale]
-
-            🌿 **Spezie, Erbette e Sostituzioni Furbe:**
-            - *[Erba/Spezia usata]:* se non ce l'hai, usa [Alternativa comune]
-            - *[Elemento cremoso/legante]:* se non ce l'hai, usa [Alternativa pratica]
+            🛒 **Ingredienti & Spezie:** [Lista sintetica con erbe/spezie suggerite]
+            👨‍🍳 **Preparazione:** (Max 3 passaggi telegrafici)
+            🌿 **Sostituzioni rapide:** [1 alternativa per spezia e 1 per legante/crema]
             """
 
+            # Disattivazione del "thinking" interno per velocità istantanea
+            gen_config = {
+                "temperature": 0.6,
+                "max_output_tokens": 450,
+            }
             try:
-                # Modello aggiornato con timeout rigido a 25 secondi
-                model = genai.GenerativeModel("models/gemini-3.8-flash")
-                risposta = model.generate_content(
-                    prompt_ricetta,
-                    request_options={"timeout": 25}
-                ).text
+                gen_config["thinking_config"] = {"thinking_budget": 0}
+                model = genai.GenerativeModel("models/gemini-3.8-flash", generation_config=gen_config)
+            except Exception:
+                gen_config.pop("thinking_config", None)
+                model = genai.GenerativeModel("models/gemini-3.8-flash", generation_config=gen_config)
 
+            try:
+                risposta = model.generate_content(prompt_rapido).text
                 st.divider()
                 st.markdown(risposta)
             except Exception as e:
-                st.error(f"Dettaglio dell'errore: {e}")
+                st.error(f"Errore: {e}")
