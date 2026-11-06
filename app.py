@@ -4,9 +4,9 @@ import google.generativeai as genai
 # Configurazione dell'unica chiave gratuita di Google AI Studio
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-st.set_page_config(page_title="Svoltagusto", page_icon="🥗", layout="centered")
+st.set_page_config(page_title="CheSeMagna", page_icon="🥗", layout="centered")
 
-st.title("🥗 Svoltagusto")
+st.title("🥗 Che se magna?")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, aromatica e su misura.")
 
 # --- MODULO FISSO (Nessuna chat, solo campi pratici) ---
