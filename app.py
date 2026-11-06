@@ -43,7 +43,7 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE ULTRA-RAPIDA (1-2 SECONDI) ---
+# --- GENERAZIONE RICETTA ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
@@ -63,33 +63,44 @@ if invia:
             REGOLE:
             - Usa SOLO gli strumenti concessi. Se tempo <= 15 min, ipotizza cereali precotti.
             - Niente paranoie caloriche o divieti assurdi (no pasta col pollo).
-            - Sii conciso e diretto: massimo 200 parole in totale, zero preamboli.
+            - Sii conciso e diretto: massimo 180 parole in totale, zero saluti o preamboli.
 
-            STRUTTURA:
+            STRUTTURA DA RISPETTARE:
             🍽️ **[Nome Piatto]**
             ⏱️ [Tempo] | 🍳 Strumento: [Uno tra {', '.join(metodi_scelti)}]
             💡 *[1 riga sul gusto]*
 
-            🛒 **Ingredienti & Spezie:** [Lista sintetica con erbe/spezie suggerite]
-            👨‍🍳 **Preparazione:** (Max 3 passaggi telegrafici)
-            🌿 **Sostituzioni rapide:** [1 alternativa per spezia e 1 per legante/crema]
+            🛒 **Ingredienti usati:**
+            - [Carboidrati, Proteine, Verdure indicati]
+            - [Spezie/erbe consigliate]
+
+            👨‍🍳 **Passaggi Facili:** (Massimo 3 passaggi brevi)
+            1. [Passo 1]
+            2. [Passo 2]
+            3. [Passo 3]
+
+            🌿 **Spezie, Erbette e Sostituzioni Furbe:**
+            - *[Erba/Spezia usata]:* se non ce l'hai, usa [Alternativa comune]
+            - *[Elemento cremoso/legante]:* se non ce l'hai, usa [Alternativa pratica]
             """
 
-            # Disattivazione del "thinking" interno per velocità istantanea
-            gen_config = {
-                "temperature": 0.6,
-                "max_output_tokens": 450,
-            }
             try:
-                gen_config["thinking_config"] = {"thinking_budget": 0}
-                model = genai.GenerativeModel("models/gemini-3.8-flash", generation_config=gen_config)
-            except Exception:
-                gen_config.pop("thinking_config", None)
-                model = genai.GenerativeModel("models/gemini-3.8-flash", generation_config=gen_config)
-
-            try:
-                risposta = model.generate_content(prompt_rapido).text
+                # Configurazione pulita e compatibile con tutti i modelli
+                model = genai.GenerativeModel(
+                    model_name="models/gemini-3.8-flash",
+                    generation_config={
+                        "temperature": 0.5,
+                        "max_output_tokens": 500,
+                    }
+                )
+                
+                risposta = model.generate_content(
+                    prompt_rapido,
+                    request_options={"timeout": 60}
+                ).text
+                
                 st.divider()
                 st.markdown(risposta)
+                
             except Exception as e:
                 st.error(f"Errore: {e}")
