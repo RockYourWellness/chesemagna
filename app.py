@@ -6,12 +6,12 @@ st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 st.title("Che se magna")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, aromatica e su misura.")
 
-# --- MODULO FISSO (Campi essenziali senza chat) ---
+# --- MODULO FISSO ---
 with st.form("modulo_ricetta"):
     st.subheader("1. Gli alimenti del tuo pasto")
     col_c, col_p, col_v = st.columns(3)
     with col_c:
-        carboidrati = st.text_input("Carboidrati:", placeholder="Es. Riso, patate, couscous")
+        carboidrati = st.text_input("Carboidrati:", placeholder="Es. Riso, patate, polenta precotta")
     with col_p:
         proteine = st.text_input("Proteine:", placeholder="Es. Pollo, uova, tofu, ceci")
     with col_v:
@@ -40,58 +40,64 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE TESTUALE ULTRA-RAPIDA ---
+# --- GENERAZIONE CON LOGICA DI COTTURA REALISTICA ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("🍳 Preparazione della ricetta..."):
+        with st.spinner("🍳 Lo chef calcola tagli e tempi di cottura..."):
             
             prompt_utente = f"""
             DATI DEL PASTO:
             - Carboidrati: {carboidrati}
             - Proteine: {proteine}
             - Verdure: {verdure}
-            - Tempo a disposizione: {tempo}
+            - Tempo massimo totale: {tempo}
             - Voglia sensoriale: {voglia}
-            - Metodi di cottura ammessi: {', '.join(metodi_scelti)}
+            - Strumenti ammessi: {', '.join(metodi_scelti)}
 
-            VINCOLI:
-            - Usa SOLO gli strumenti ammessi. Se tempo <= 15 min, ipotizza cereali precotti.
-            - Vietata la pasta col pollo e niente conteggi calorici.
-            - Sintetico e appetitoso: massimo 130 parole.
+            VINCOLI CULINARI RIGIDI:
+            1. REALISMO TERMICO E FISICA DI COTTURA:
+               - MAI cuocere insieme alimenti con tempi e idratazione diversi (es. verdure crude ricche d'acqua e carboidrati precotti o carni magre).
+               - Imposta cotture A SCAGLIONI: indica esattamente cosa inserire prima e cosa aggiungere solo negli ultimi minuti per non bruciare/seccare.
+               - Specifica il TAGLIO FUNZIONALE: se il tempo è breve (10-15 min), verdure a rondelle millimetriche o alla julienne; carni a straccetti sottili.
+               - In friggitrice ad aria: proteggi i carboidrati precotti (polenta, riso, gnocchi) con un velo d'olio o scottali solo per pochi minuti per non farli diventare pietre.
+            2. CUCINA CONSAPEVOLE:
+               - Nessun accostamento sgradevole (no pasta con pollo).
+               - Nessun calcolo di calorie o grammature rigide.
+               - Sfrutta acidità, spezie o emulsioni per dare succosità senza seccare le preparazioni.
 
             STRUTTURA:
             🍽️ **[Nome Invitante del Piatto]**
-            ⏱️ [Tempo] | 🍳 Strumento: [Uno tra gli ammessi]
-            💡 *[1 frase sul gusto]*
+            ⏱️ [Tempo effettivo] | 🍳 Strumento: [Uno tra gli ammessi]
+            💡 *[1 riga sul profilo aromatico/consistenza]*
 
-            🛒 **Ingredienti usati:**
-            - [Carboidrati, Proteine, Verdure]
-            - [Spezie ed erbe consigliate]
+            🛒 **Ingredienti e Tagli Consigliati:**
+            - [Carboidrato, Proteina, Verdura con indicazione di taglio esatto per cuocere nei tempi]
+            - [Spezie, erbe o grasso di cottura suggeriti]
 
-            👨‍🍳 **Passaggi Facili:** (Max 3 passaggi chiari)
-            1. [Passo 1]
-            2. [Passo 2]
-            3. [Passo 3]
+            👨‍🍳 **Passaggi a Scaglioni:** (Max 3 passaggi cronologici con minuti precisi per ogni fase)
+            1. [Minuto 0-X: prima preparazione/cottura elemento che richiede più tempo]
+            2. [Minuto X-Y: inserimento secondo elemento / doratura]
+            3. [Tocco finale: condimento, mantecatura o finitura a crudo]
 
             🌿 **Spezie & Sostituzioni Furbe:**
             - *[Spezia/erba usata]:* alternativa comune
-            - *[Condimento cremoso/legante]:* alternativa comune
+            - *[Elemento umido/legante]:* alternativa comune
             """
 
             try:
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 
-                # 1. Filtro rigido: isoliamo SOLO i modelli di testo per chat (escludiamo audio, guard e vision)
+                # Esclusione modelli non testuali
                 modelli_disponibili = [
                     m.id for m in client.models.list().data 
                     if not any(escluso in m.id.lower() for escluso in ["whisper", "guard", "vision", "embed"])
                 ]
 
-                # 2. Ordiniamo dando precedenza ai modelli Llama stabili
+                # Priorità ai modelli Llama stabili
                 modelli_prioritari = sorted(
                     modelli_disponibili, 
                     key=lambda x: ("llama" in x.lower() or "mixtral" in x.lower() or "gemma" in x.lower()), 
@@ -99,38 +105,13 @@ if invia:
                 )
 
                 ricetta = None
-                errore_ultimo = ""
-
-                # 3. Tenta la generazione con il primo modello di testo valido
                 for mod in modelli_prioritari:
                     try:
                         chat_completion = client.chat.completions.create(
                             messages=[
                                 {
                                     "role": "system",
-                                    "content": "Sei uno chef nutrizionista italiano esperto in piatti sani, rapidi e ricchi di gusto. Rispondi solo in italiano."
-                                },
-                                {
-                                    "role": "user",
-                                    "content": prompt_utente
-                                }
-                            ],
-                            model=mod,
-                            temperature=0.4,
-                            max_tokens=400,
-                        )
-                        ricetta = chat_completion.choices[0].message.content
-                        if ricetta:
-                            break
-                    except Exception as err:
-                        errore_ultimo = str(err)
-                        continue
-
-                if ricetta:
-                    st.divider()
-                    st.markdown(ricetta)
-                else:
-                    st.error(f"Errore generazione: nessun modello compatibile ha risposto ({errore_ultimo})")
-
-            except Exception as e:
-                st.error(f"Errore di connessione a Groq: {e}")
+                                    "content": (
+                                        "Sei uno chef professionista e tecnologo alimentare italiano. "
+                                        "Conosci alla perfezione la chimica della cottura, le rese della friggitrice ad aria, "
+                                        "i tagli funzionali e la gestione
