@@ -40,29 +40,29 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- CHIAMATA DIRETTA ULTRA-RAPIDA (HTTP REST) ---
+# --- GENERAZIONE ULTRA-RAPIDA (THINKING DISATTIVATO) ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("Creo la tua ricetta in 2 secondi..."):
+        with st.spinner("🍳 Lo chef sta creando la ricetta..."):
             
             prompt_rapido = f"""
-            Sei uno chef nutrizionista pratico e conciso. Crea una ricetta sfiziosa e veloce.
+            Sei uno chef nutrizionista. Crea subito una ricetta sfiziosa e veloce.
             
             DATI:
             - Carboidrati: {carboidrati} | Proteine: {proteine} | Verdure: {verdure}
             - Tempo: {tempo} | Voglia: {voglia}
             - Strumenti concessi: {', '.join(metodi_scelti)}
 
-            REGOLE TASSATIVE:
-            - Usa SOLO gli strumenti concessi. Se tempo <= 15 min, ipotizza cereali precotti o tagli sottili.
+            REGOLE:
+            - Usa SOLO gli strumenti concessi. Se tempo <= 15 min, ipotizza cereali precotti.
             - Vietata la pasta col pollo e niente calcolo calorie.
-            - Massima brevità: massimo 160 parole in totale, zero saluti o introduzioni.
+            - Telegrafico: massimo 130 parole in totale, niente convenevoli.
 
-            STRUTTURA DA RISPETTARE:
+            STRUTTURA:
             🍽️ **[Nome Piatto]**
             ⏱️ [Tempo] | 🍳 Strumento: [Uno tra {', '.join(metodi_scelti)}]
             💡 *[1 riga sul gusto]*
@@ -71,14 +71,14 @@ if invia:
             - [Carboidrati, Proteine, Verdure]
             - [Spezie ed erbe consigliate]
 
-            👨‍🍳 **Passaggi Facili:** (Massimo 3 passaggi telegrafici)
+            👨‍🍳 **Preparazione:** (Max 3 passaggi rapidissimi)
             1. [Passo 1]
             2. [Passo 2]
             3. [Passo 3]
 
-            🌿 **Spezie, Erbette e Sostituzioni Furbe:**
-            - *[Spezia/erba usata]:* alternativa con [Alternativa comune]
-            - *[Condimento cremoso]:* alternativa con [Alternativa pratica]
+            🌿 **Spezie & Sostituzioni Furbe:**
+            - *[Spezia/erba]:* se manca, usa [Alternativa comune]
+            - *[Legante/crema]:* se manca, usa [Alternativa comune]
             """
 
             api_key = st.secrets["GEMINI_API_KEY"]
@@ -91,14 +91,18 @@ if invia:
                     }
                 ],
                 "generationConfig": {
-                    "temperature": 0.4,
-                    "maxOutputTokens": 380
+                    "temperature": 0.3,
+                    "maxOutputTokens": 320,
+                    # Disattiva completamente il tempo di ragionamento interno
+                    "thinkingConfig": {
+                        "thinkingBudget": 0
+                    }
                 }
             }
 
             try:
-                # Timeout rigido a 8 secondi: risposta istantanea senza blocchi di rete
-                response = requests.post(url, json=payload, timeout=8)
+                # 15s di salvaguardia di rete, ma l'elaborazione termina in ~2s
+                response = requests.post(url, json=payload, timeout=15)
                 
                 if response.status_code == 200:
                     dati = response.json()
@@ -106,9 +110,20 @@ if invia:
                     st.divider()
                     st.markdown(testo_ricetta)
                 else:
-                    st.error(f"Errore Google ({response.status_code}): {response.text}")
+                    # Fallback automatico se il parametro thinkingConfig venisse ignorato
+                    if "thinkingConfig" in response.text:
+                        payload["generationConfig"].pop("thinkingConfig", None)
+                        res_retry = requests.post(url, json=payload, timeout=15)
+                        if res_retry.status_code == 200:
+                            testo = res_retry.json()["candidates"][0]["content"]["parts"][0]["text"]
+                            st.divider()
+                            st.markdown(testo)
+                        else:
+                            st.error(f"Errore Google: {res_retry.text}")
+                    else:
+                        st.error(f"Errore Google ({response.status_code}): {response.text}")
                     
             except requests.exceptions.Timeout:
-                st.error("I server di Google hanno impiegato più di 8 secondi. Riprova: al secondo tentativo risponde subito.")
+                st.error("I server di Google sono temporaneamente congestionati. Fai un altro tentativo.")
             except Exception as e:
                 st.error(f"Errore imprevisto: {e}")
