@@ -1,16 +1,22 @@
 import streamlit as st
 import google.generativeai as genai
 
-st.title("Test Connessione")
+st.title("Verifica Modelli Abilitati")
 
-if "GEMINI_API_KEY" not in st.secrets:
-    st.error("ERRORE: Non hai ancora salvato la voce GEMINI_API_KEY nei Secrets di Streamlit!")
-else:
-    st.write("Chiave trovata nei Secrets. Provo a contattare Google...")
-    try:
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        testo = model.generate_content("Rispondi solo con: OK FUNZIONA").text
-        st.success(f"Risultato: {testo}")
-    except Exception as e:
-        st.error(f"Dettaglio errore da Google: {e}")
+try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    
+    # Chiede a Google quali modelli sono utilizzabili con la tua chiave
+    modelli_attivi = [
+        m.name for m in genai.list_models() 
+        if 'generateContent' in m.supported_generation_methods
+    ]
+    
+    if modelli_attivi:
+        st.success("Connessione riuscita! Ecco i modelli che puoi usare subito:")
+        for m in modelli_attivi:
+            st.write(f"- `{m}`")
+    else:
+        st.warning("La chiave è valida, ma non ha ancora modelli di testo abilitati.")
+except Exception as e:
+    st.error(f"Errore: {e}")
