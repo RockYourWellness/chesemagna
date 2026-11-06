@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time
 
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
@@ -40,14 +41,14 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE ULTRA-RAPIDA (THINKING DISATTIVATO) ---
+# --- GENERAZIONE CON RIDONDANZA E FALLBACK ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("🍳 Lo chef sta creando la ricetta..."):
+        with st.spinner("🍳 Lo chef sta preparando la ricetta..."):
             
             prompt_rapido = f"""
             Sei uno chef nutrizionista. Crea subito una ricetta sfiziosa e veloce.
@@ -82,48 +83,38 @@ if invia:
             """
 
             api_key = st.secrets["GEMINI_API_KEY"]
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
+            
+            # Modelli da provare in ordine di priorità
+            modelli = ["gemini-3.8-flash", "gemini-2.5-pro"]
+            ricetta_generata = None
             
             payload = {
-                "contents": [
-                    {
-                        "parts": [{"text": prompt_rapido}]
-                    }
-                ],
+                "contents": [{"parts": [{"text": prompt_rapido}]}],
                 "generationConfig": {
                     "temperature": 0.3,
-                    "maxOutputTokens": 320,
-                    # Disattiva completamente il tempo di ragionamento interno
-                    "thinkingConfig": {
-                        "thinkingBudget": 0
-                    }
+                    "maxOutputTokens": 320
                 }
             }
 
-            try:
-                # 15s di salvaguardia di rete, ma l'elaborazione termina in ~2s
-                response = requests.post(url, json=payload, timeout=15)
-                
-                if response.status_code == 200:
-                    dati = response.json()
-                    testo_ricetta = dati["candidates"][0]["content"]["parts"][0]["text"]
-                    st.divider()
-                    st.markdown(testo_ricetta)
-                else:
-                    # Fallback automatico se il parametro thinkingConfig venisse ignorato
-                    if "thinkingConfig" in response.text:
-                        payload["generationConfig"].pop("thinkingConfig", None)
-                        res_retry = requests.post(url, json=payload, timeout=15)
-                        if res_retry.status_code == 200:
-                            testo = res_retry.json()["candidates"][0]["content"]["parts"][0]["text"]
-                            st.divider()
-                            st.markdown(testo)
-                        else:
-                            st.error(f"Errore Google: {res_retry.text}")
-                    else:
-                        st.error(f"Errore Google ({response.status_code}): {response.text}")
-                    
-            except requests.exceptions.Timeout:
-                st.error("I server di Google sono temporaneamente congestionati. Fai un altro tentativo.")
-            except Exception as e:
-                st.error(f"Errore imprevisto: {e}")
+            for model_name in modelli:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+                try:
+                    res = requests.post(url, json=payload, timeout=10)
+                    if res.status_code == 200:
+                        dati = res.json()
+                        ricetta_generata = dati["candidates"][0]["content"]["parts"][0]["text"]
+                        break
+                    elif res.status_code in [503, 429]:
+                        # Se il server è saturo, aspetta 1 secondo e prova il modello di riserva
+                        time.sleep(1)
+                        continue
+                except requests.exceptions.Timeout:
+                    continue
+                except Exception:
+                    continue
+
+            if ricetta_generata:
+                st.divider()
+                st.markdown(ricetta_generata)
+            else:
+                st.warning("I server di Google sono momentaneamente saturi in questo minuto. Premi di nuovo il pulsante per ritentare.")
