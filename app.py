@@ -114,4 +114,30 @@ if invia:
                                     "content": (
                                         "Sei uno chef professionista e tecnologo alimentare italiano. "
                                         "Conosci alla perfezione la chimica della cottura, le rese della friggitrice ad aria, "
-                                        "i tagli funzionali e la gestione
+                                        "i tagli funzionali e la gestione dei tempi a scaglioni. "
+                                        "Rispondi sempre in italiano, con passaggi tecnici impeccabili ma accessibili."
+                                    )
+                                },
+                                {
+                                    "role": "user",
+                                    "content": prompt_utente
+                                }
+                            ],
+                            model=mod,
+                            temperature=0.3,
+                            max_tokens=500,
+                        )
+                        ricetta = chat_completion.choices[0].message.content
+                        if ricetta:
+                            break
+                    except Exception:
+                        continue
+
+                if ricetta:
+                    st.divider()
+                    st.markdown(ricetta)
+                else:
+                    st.error("Errore momentaneo di generazione. Riprova tra pochi istanti.")
+
+            except Exception as e:
+                st.error(f"Errore di connessione a Groq: {e}")
