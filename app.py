@@ -1,6 +1,3 @@
-Ecco il codice aggiornato per **`app.py`** con il nuovo nome:
-
-```python
 import streamlit as st
 import google.generativeai as genai
 
@@ -100,5 +97,3 @@ if invia:
                 st.markdown(risposta)
             except Exception as e:
                 st.error(f"Errore durante la creazione della ricetta: {e}")
-
-```
