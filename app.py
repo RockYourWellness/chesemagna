@@ -11,11 +11,11 @@ with st.form("modulo_ricetta"):
     st.subheader("1. Gli alimenti del tuo pasto")
     col_c, col_p, col_v = st.columns(3)
     with col_c:
-        carboidrati = st.text_input("Carboidrati:", placeholder="Es. Riso, patate, polenta precotta")
+        carboidrati = st.text_input("Carboidrati:", placeholder="Es. Polenta precotta, riso, patate, pane")
     with col_p:
-        proteine = st.text_input("Proteine:", placeholder="Es. Pollo, uova, tofu, ceci")
+        proteine = st.text_input("Proteine:", placeholder="Es. Pollo, uova, tofu, ceci in scatola")
     with col_v:
-        verdure = st.text_input("Verdure:", placeholder="Es. Zucchine, carote, spinaci")
+        verdure = st.text_input("Verdure:", placeholder="Es. Zucchine, carote, peperoni, spinaci")
 
     st.subheader("2. Tempo e Voglia del momento")
     col_t, col_m = st.columns(2)
@@ -40,14 +40,14 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE CON LOGICA DI COTTURA REALISTICA ---
+# --- GENERAZIONE CON GERARCHIA TERMICA RIGIDA ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("🍳 Lo chef calcola tagli e tempi di cottura..."):
+        with st.spinner("🍳 Lo chef calcola tagli e gerarchia di cottura..."):
             
             prompt_utente = f"""
             DATI DEL PASTO:
@@ -56,36 +56,37 @@ if invia:
             - Verdure: {verdure}
             - Tempo massimo totale: {tempo}
             - Voglia sensoriale: {voglia}
-            - Strumenti ammessi: {', '.join(metodi_scelti)}
+            - Metodi di cottura concessi: {', '.join(metodi_scelti)}
 
-            VINCOLI CULINARI RIGIDI:
-            1. REALISMO TERMICO E FISICA DI COTTURA:
-               - MAI cuocere insieme alimenti con tempi e idratazione diversi (es. verdure crude ricche d'acqua e carboidrati precotti o carni magre).
-               - Imposta cotture A SCAGLIONI: indica esattamente cosa inserire prima e cosa aggiungere solo negli ultimi minuti per non bruciare/seccare.
-               - Specifica il TAGLIO FUNZIONALE: se il tempo è breve (10-15 min), verdure a rondelle millimetriche o alla julienne; carni a straccetti sottili.
-               - In friggitrice ad aria: proteggi i carboidrati precotti (polenta, riso, gnocchi) con un velo d'olio o scottali solo per pochi minuti per non farli diventare pietre.
-            2. CUCINA CONSAPEVOLE:
-               - Nessun accostamento sgradevole (no pasta con pollo).
-               - Nessun calcolo di calorie o grammature rigide.
-               - Sfrutta acidità, spezie o emulsioni per dare succosità senza seccare le preparazioni.
+            LEGGI FISICHE DELLA COTTURA (RISPETTO TASSATIVO):
+            1. GERARCHIA D'INSERIMENTO OBBLIGATORIA:
+               - PRIMA FASE (Minuto 0): Entrano SEMPRE e SOLO gli ingredienti CRUDI che contengono acqua cellulare e devono cuocere (es. zucchine, carote crude, carne cruda). Devono avere un taglio funzionale al tempo (a rondelle sottili di 3 mm o julienne se il tempo è sotto i 15 min).
+               - SECONDA FASE (Solo a metà o negli ultimi 4-5 minuti): Entrano gli ingredienti GIÀ COTTI o precotti (es. polenta pronta in panetto, ceci in scatola, riso già pronto). Devono solo scaldarsi o creare la crosta esterna.
+               - DIVIETO ASSOLUTO: MAI inserire un ingrediente precotto all'inizio se ci sono verdure crude nello stesso strumento; si brucerebbe/seccherebbe.
+            2. FOCUS FRIGGITRICE AD ARIA (se selezionata):
+               - Le verdure crude necessitano di spazio e calore iniziale (es. 180°C per 8-10 min).
+               - La polenta precotta (o legumi precotti) va oliata leggermente in superficie e aggiunta SOLO per gli ultimi 4-5 minuti a 200°C per dorare senza disidratare il cuore.
+            3. STILE:
+               - Nessun accostamento sgradevole (no pasta con pollo) e nessun conteggio calorico.
+               - Massimo 140 parole, conciso e pratico.
 
             STRUTTURA:
             🍽️ **[Nome Invitante del Piatto]**
-            ⏱️ [Tempo effettivo] | 🍳 Strumento: [Uno tra gli ammessi]
-            💡 *[1 riga sul profilo aromatico/consistenza]*
+            ⏱️ [Tempo effettivo] | 🍳 Strumento: [Uno tra {', '.join(metodi_scelti)}]
+            💡 *[1 riga su consistenza e gusto]*
 
-            🛒 **Ingredienti e Tagli Consigliati:**
-            - [Carboidrato, Proteina, Verdura con indicazione di taglio esatto per cuocere nei tempi]
-            - [Spezie, erbe o grasso di cottura suggeriti]
+            🛒 **Ingredienti e Tagli:**
+            - [Carboidrato, Proteina, Verdura con spessore di taglio consigliato]
+            - [Spezie, erbe o condimento furbi]
 
-            👨‍🍳 **Passaggi a Scaglioni:** (Max 3 passaggi cronologici con minuti precisi per ogni fase)
-            1. [Minuto 0-X: prima preparazione/cottura elemento che richiede più tempo]
-            2. [Minuto X-Y: inserimento secondo elemento / doratura]
-            3. [Tocco finale: condimento, mantecatura o finitura a crudo]
+            👨‍🍳 **Passaggi a Scaglioni (Ordine Termico Corretto):**
+            1. [Passo 1 - Minuto 0: Avvio ingrediente crudo/più lungo con taglio fine]
+            2. [Passo 2 - Ultimi minuti: Aggiunta ingrediente precotto per dorare/scaldare]
+            3. [Passo 3: Chiusura con aroma, spezia o emulsione rapida]
 
-            🌿 **Spezie & Sostituzioni Furbe:**
+            🌿 **Spezie & Sostituzioni:**
             - *[Spezia/erba usata]:* alternativa comune
-            - *[Elemento umido/legante]:* alternativa comune
+            - *[Condimento/legante]:* alternativa comune
             """
 
             try:
@@ -97,7 +98,7 @@ if invia:
                     if not any(escluso in m.id.lower() for escluso in ["whisper", "guard", "vision", "embed"])
                 ]
 
-                # Priorità ai modelli Llama stabili
+                # Priorità ai modelli Llama
                 modelli_prioritari = sorted(
                     modelli_disponibili, 
                     key=lambda x: ("llama" in x.lower() or "mixtral" in x.lower() or "gemma" in x.lower()), 
@@ -112,10 +113,9 @@ if invia:
                                 {
                                     "role": "system",
                                     "content": (
-                                        "Sei uno chef professionista e tecnologo alimentare italiano. "
-                                        "Conosci alla perfezione la chimica della cottura, le rese della friggitrice ad aria, "
-                                        "i tagli funzionali e la gestione dei tempi a scaglioni. "
-                                        "Rispondi sempre in italiano, con passaggi tecnici impeccabili ma accessibili."
+                                        "Sei uno chef professionista e docente di chimica culinaria. "
+                                        "Applichi con rigore la fisica termica: i cibi crudi ricchi d'acqua entrano sempre prima; "
+                                        "i cibi precotti o secchi entrano sempre per ultimi. Rispondi solo in italiano."
                                     )
                                 },
                                 {
@@ -124,8 +124,8 @@ if invia:
                                 }
                             ],
                             model=mod,
-                            temperature=0.3,
-                            max_tokens=500,
+                            temperature=0.2,  # Abbassata per ridurre le allucinazioni e aumentare il rigore logico
+                            max_tokens=450,
                         )
                         ricetta = chat_completion.choices[0].message.content
                         if ricetta:
