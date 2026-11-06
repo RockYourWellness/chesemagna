@@ -6,7 +6,7 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
-st.title("🥗 Che se magna")
+st.title("Che se magna")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, aromatica e su misura.")
 
 # --- MODULO FISSO (Nessuna chat, campi puliti per il paziente) ---
@@ -43,7 +43,7 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE RICETTA CON GEMINI 2.5 FLASH ---
+# --- GENERAZIONE RICETTA CON GEMINI 3.8 FLASH ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
@@ -90,7 +90,8 @@ if invia:
             """
 
             try:
-                model = genai.GenerativeModel("gemini-2.5-flash")
+                # Modello aggiornato come richiesto da Google
+                model = genai.GenerativeModel("gemini-3.8-flash")
                 risposta = model.generate_content(prompt_ricetta).text
 
                 st.divider()
