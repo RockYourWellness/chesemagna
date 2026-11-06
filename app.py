@@ -1,13 +1,12 @@
 import streamlit as st
-import requests
-import time
+from groq import Groq
 
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
-st.title("🥗 Che se magna")
+st.title("Che se magna")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, aromatica e su misura.")
 
-# --- MODULO FISSO ---
+# --- MODULO FISSO (Nessuna chat, campi puliti per il paziente) ---
 with st.form("modulo_ricetta"):
     st.subheader("1. Gli alimenti del tuo pasto")
     col_c, col_p, col_v = st.columns(3)
@@ -41,80 +40,70 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE CON RIDONDANZA E FALLBACK ---
+# --- GENERAZIONE ULTRA-RAPIDA CON GROQ (SUB-SECOND) ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("🍳 Lo chef sta preparando la ricetta..."):
+        with st.spinner("🍳 Lo chef sta creando la ricetta..."):
             
-            prompt_rapido = f"""
-            Sei uno chef nutrizionista. Crea subito una ricetta sfiziosa e veloce.
-            
-            DATI:
-            - Carboidrati: {carboidrati} | Proteine: {proteine} | Verdure: {verdure}
-            - Tempo: {tempo} | Voglia: {voglia}
-            - Strumenti concessi: {', '.join(metodi_scelti)}
+            prompt_utente = f"""
+            DATI DEL PASTO:
+            - Carboidrati: {carboidrati}
+            - Proteine: {proteine}
+            - Verdure: {verdure}
+            - Tempo a disposizione: {tempo}
+            - Voglia sensoriale: {voglia}
+            - Metodi di cottura ammessi: {', '.join(metodi_scelti)}
 
-            REGOLE:
-            - Usa SOLO gli strumenti concessi. Se tempo <= 15 min, ipotizza cereali precotti.
-            - Vietata la pasta col pollo e niente calcolo calorie.
-            - Telegrafico: massimo 130 parole in totale, niente convenevoli.
+            VINCOLI:
+            - Usa SOLO gli strumenti ammessi. Se il tempo è 10-15 min, ipotizza riso/cereali precotti o tagli sottili.
+            - Niente accostamenti sgradevoli (vietata la pasta con il pollo) e niente calcoli di calorie.
+            - Risposta diretta e sintetica, senza convenevoli.
 
-            STRUTTURA:
-            🍽️ **[Nome Piatto]**
-            ⏱️ [Tempo] | 🍳 Strumento: [Uno tra {', '.join(metodi_scelti)}]
-            💡 *[1 riga sul gusto]*
+            FORMATO DA RISPETTARE:
+            🍽️ **[Nome Invitante del Piatto]**
+            ⏱️ [Tempo] | 🍳 Strumento: [Uno tra gli ammessi]
+            💡 *[1 frase sul gusto]*
 
             🛒 **Ingredienti usati:**
             - [Carboidrati, Proteine, Verdure]
             - [Spezie ed erbe consigliate]
 
-            👨‍🍳 **Preparazione:** (Max 3 passaggi rapidissimi)
+            👨‍🍳 **Passaggi Facili:** (Massimo 3 passaggi chiari)
             1. [Passo 1]
             2. [Passo 2]
             3. [Passo 3]
 
-            🌿 **Spezie & Sostituzioni Furbe:**
-            - *[Spezia/erba]:* se manca, usa [Alternativa comune]
-            - *[Legante/crema]:* se manca, usa [Alternativa comune]
+            🌿 **Spezie, Erbette e Sostituzioni Furbe:**
+            - *[Spezia/erba usata]:* se non ce l'hai, usa [Alternativa comune]
+            - *[Condimento cremoso/legante]:* se non ce l'hai, usa [Alternativa comune]
             """
 
-            api_key = st.secrets["GEMINI_API_KEY"]
-            
-            # Modelli da provare in ordine di priorità
-            modelli = ["gemini-3.8-flash", "gemini-2.5-pro"]
-            ricetta_generata = None
-            
-            payload = {
-                "contents": [{"parts": [{"text": prompt_rapido}]}],
-                "generationConfig": {
-                    "temperature": 0.3,
-                    "maxOutputTokens": 320
-                }
-            }
+            try:
+                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Sei uno chef nutrizionista esperto in alimentazione sostenibile, gustosa e priva di paranoie. Rispondi sempre in italiano, in modo conciso e appetitoso."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt_utente
+                        }
+                    ],
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.5,
+                    max_tokens=450,
+                )
 
-            for model_name in modelli:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-                try:
-                    res = requests.post(url, json=payload, timeout=10)
-                    if res.status_code == 200:
-                        dati = res.json()
-                        ricetta_generata = dati["candidates"][0]["content"]["parts"][0]["text"]
-                        break
-                    elif res.status_code in [503, 429]:
-                        # Se il server è saturo, aspetta 1 secondo e prova il modello di riserva
-                        time.sleep(1)
-                        continue
-                except requests.exceptions.Timeout:
-                    continue
-                except Exception:
-                    continue
-
-            if ricetta_generata:
+                ricetta = chat_completion.choices[0].message.content
                 st.divider()
-                st.markdown(ricetta_generata)
-            else:
-                st.warning("I server di Google sono momentaneamente saturi in questo minuto. Premi di nuovo il pulsante per ritentare.")
+                st.markdown(ricetta)
+
+            except Exception as e:
+                st.error(f"Dettaglio errore: {e}")
