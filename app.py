@@ -1,8 +1,8 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Configurazione chiave API da Streamlit Secrets
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+# Forza il protocollo REST: elimina i blocchi di rete su Streamlit Cloud
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"], transport="rest")
 
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
@@ -43,7 +43,7 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE RICETTA CON GEMINI 3.8 FLASH ---
+# --- GENERAZIONE RICETTA ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
@@ -90,11 +90,14 @@ if invia:
             """
 
             try:
-                # Modello aggiornato come richiesto da Google
-                model = genai.GenerativeModel("gemini-3.8-flash")
-                risposta = model.generate_content(prompt_ricetta).text
+                # Modello aggiornato con timeout rigido a 25 secondi
+                model = genai.GenerativeModel("models/gemini-3.8-flash")
+                risposta = model.generate_content(
+                    prompt_ricetta,
+                    request_options={"timeout": 25}
+                ).text
 
                 st.divider()
                 st.markdown(risposta)
             except Exception as e:
-                st.error(f"Errore durante la creazione della ricetta: {e}")
+                st.error(f"Dettaglio dell'errore: {e}")
