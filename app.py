@@ -4,7 +4,7 @@ from groq import Groq
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
 st.title("Che se magna")
-st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, aromatica e su misura.")
+st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, saporita e senza complicazioni.")
 
 # --- MODULO FISSO ---
 with st.form("modulo_ricetta"):
@@ -13,9 +13,9 @@ with st.form("modulo_ricetta"):
     with col_c:
         carboidrati = st.text_input("Carboidrati:", placeholder="Es. Pane, crostini, mais, riso precotto, friselle")
     with col_p:
-        proteine = st.text_input("Proteine:", placeholder="Es. Tofu, ceci in scatola, tonno, uova, feta")
+        proteine = st.text_input("Proteine:", placeholder="Es. Tofu, ceci in scatola, tonno, uova, feta, pollo")
     with col_v:
-        verdure = st.text_input("Verdure:", placeholder="Es. Zucchine, cetrioli, pomodori, spinaci, carote")
+        verdure = st.text_input("Verdure:", placeholder="Es. Zucchine, carote, pomodori, insalata, spinaci")
 
     st.subheader("2. Tempo e Voglia del momento")
     col_t, col_m = st.columns(2)
@@ -23,11 +23,11 @@ with st.form("modulo_ricetta"):
         tempo = st.selectbox("Quanto tempo hai?", ["10-15 minuti (Ultra rapido)", "20-30 minuti", "Oltre 30 minuti"])
     with col_m:
         voglia = st.selectbox("Cosa ti andrebbe oggi?", [
-            "Fresco e aromatico", 
+            "Fresco e semplice", 
             "Croccante e sfizioso", 
-            "Cremoso e avvolgente", 
-            "Speziato / Etnico", 
-            "Rustico / Mediterraneo"
+            "Morbido e saporito", 
+            "Profumato con erbe", 
+            "Rustico / Tradizionale"
         ])
 
     st.subheader("3. Metodi di cottura che vuoi usare")
@@ -48,14 +48,14 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE RICETTA (SENZA AGLIO E CON REGOLE TERMICHE) ---
+# --- GENERAZIONE RICETTA CON FOOTER DI RASSICURAZIONE ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un'opzione tra i metodi di cottura (anche solo 'A crudo').")
     else:
-        with st.spinner("🍳 Lo chef crea la combinazione ideale..."):
+        with st.spinner("🍳 Preparo una ricetta semplice e appetitosa..."):
             
             prompt_utente = f"""
             DATI DEL PASTO:
@@ -63,55 +63,52 @@ if invia:
             - Proteine: {proteine}
             - Verdure: {verdure}
             - Tempo massimo: {tempo}
-            - Voglia sensoriale: {voglia}
+            - Voglia: {voglia}
             - Metodi ammessi: {', '.join(metodi_scelti)}
 
             VINCOLI TASSATIVI:
-            1. DIVIETO TOTALE DELL'AGLIO:
-               - È SEVERAMENTE VIETATO usare aglio in qualsiasi forma (fresco, in polvere, spicchi o strane invenzioni). A molti pazienti non piace o causa problemi digestivi.
-               - Per dare sapore usa erbe mediterranee (basilico, origano, rosmarino, timo, prezzemolo), scorza di agrumi o spezie classiche (pepe, paprika dolce, origano, zenzero).
-            2. OPZIONE "NESSUNA COTTURA (A CRUDO / PIATTO FREDDO)":
-               - Se c'è 'Nessuna cottura' tra le scelte o è l'unica selezionata: NON nominare fornelli o calore.
-               - Proponi bowl, insalate ricche, tartare o carpacci vegetali.
-               - Cura l'emulsione del condimento: olio, acidità (limone, aceto o soia) e leganti freddi semplici (yogurt, senape).
-            3. CARBOIDRATI READY-TO-EAT:
-               - Pane fresco, crostini, friselle o gallette non vanno cotti negli elettrodomestici: usali a crudo come accompagnamento o base d'appoggio.
-            4. ORDINE TERMICO (SE SI CUOCE):
-               - Verdure crude e carni entrano per prime con tagli sottili. Ingredienti precotti (es. polenta, ceci) entrano solo negli ultimi 4 minuti per non seccare.
-            5. STILE:
-               - Niente accostamenti assurdi (no pasta con pollo), niente conteggi calorici.
-               - Massimo 130 parole, conciso e pratico.
+            1. LINGUAGGIO SEMPLICE E CASALINGO (TARGET: TUTTI, ANCHE ANZIANI):
+               - VIETATO IL GERGO GOURMET: niente sashimi, tartare, carpaccio, bowl, dressing, julienne, brunoise.
+               - Solo parole comuni: "a fettine sottili", "a dadini", "a striscioline", "insalatona", "piatto freddo".
+               - Titoli semplici e chiari (es. "Insalata fresca con ceci e pomodori", "Zucchine in padella con pollo e pane").
+            2. DIVIETO TOTALE DELL'AGLIO:
+               - Nessun tipo di aglio. Usa basilico, origano, rosmarino, limone, prezzemolo, timo o spezie dolci.
+            3. CARBOIDRATI COME PANE O CROSTINI:
+               - Se l'utente scrive pane, fette, gallette o crostini, NON metterli a cuocere negli elettrodomestici. Servili a fette a lato per accompagnare.
+            4. OPZIONE "NESSUNA COTTURA / PIATTO FREDDO":
+               - Se selezionata, non accendere nulla: taglia le verdure e uniscile alle proteine condendo con olio, limone ed erbe.
+            5. ORDINE TERMICO (SE SI ACCENDE QUALCOSA):
+               - Verdure crude o carne entrano per prime tagliate piccole. Ingredienti precotti (ceci, polenta pronta) entrano solo negli ultimi minuti per scaldarli.
+            6. ZERO CALORIE, zero pasta con pollo, massimo 120 parole.
 
-            STRUTTURA:
-            🍽️ **[Nome Invitante del Piatto]**
-            ⏱️ [Tempo] | 🍳 Metodo: [Nessuna cottura OPPURE strumento usato]
-            💡 *[1 riga sul gusto]*
+            FORMATO DI RISPOSTA:
+            🍽️ **[Nome Semplice e Familiare del Piatto]**
+            ⏱️ [Tempo] | 🍳 Strumento: [Strumento usato o "Nessuna cottura"]
+            💡 *[1 frase rassicurante sul sapore]*
 
-            🛒 **Ingredienti e Tagli:**
-            - [Carboidrato: specificare se a lato, base o cotto]
-            - [Proteina e Verdura con indicazione di taglio precisa]
-            - [Erbe aromatiche, spezie e condimento suggeriti (NO aglio)]
+            🛒 **Ingredienti da preparare:**
+            - [Carboidrato: indicare se va a fette nel piatto a lato o cotto]
+            - [Proteina e Verdura con taglio pratico: a dadini, a fettine, ecc.]
+            - [Condimento semplice: olio, limone, erbe a piacere]
 
-            👨‍🍳 **Passaggi Rapidi:** (Massimo 3 passaggi chiari)
-            1. [Passo 1]
-            2. [Passo 2]
-            3. [Passo 3]
+            👨‍🍳 **Come prepararlo:** (Massimo 3 passaggi chiarissimi)
+            1. [Passo 1: taglio]
+            2. [Passo 2: cottura o unione a freddo]
+            3. [Passo 3: come servire a tavola]
 
-            🌿 **Erbe & Sostituzioni:**
-            - *[Erba/spezia usata]:* alternativa comune
-            - *[Condimento usato]:* alternativa comune
+            🌿 **Alternative pratiche se manca qualcosa:**
+            - *[Erba usata]:* se non ce l'hai, usa [Alternativa comunissima]
+            - *[Condimento]:* se non ce l'hai, usa [Alternativa comunissima]
             """
 
             try:
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 
-                # Esclusione modelli non testuali
                 modelli_disponibili = [
                     m.id for m in client.models.list().data 
                     if not any(escluso in m.id.lower() for escluso in ["whisper", "guard", "vision", "embed"])
                 ]
 
-                # Priorità ai modelli Llama
                 modelli_prioritari = sorted(
                     modelli_disponibili, 
                     key=lambda x: ("llama" in x.lower() or "mixtral" in x.lower() or "gemma" in x.lower()), 
@@ -126,8 +123,8 @@ if invia:
                                 {
                                     "role": "system",
                                     "content": (
-                                        "Sei uno chef nutrizionista italiano. Crei ricette sane, saporite e concrete. "
-                                        "Non usi MAI l'aglio. Rispondi solo in italiano senza allucinazioni culinarie."
+                                        "Sei un cuoco di casa italiano, pratico e rassicurante. "
+                                        "Spieghi tutto con parole semplici e familiari. Non usi mai l'aglio. Rispondi in italiano."
                                     )
                                 },
                                 {
@@ -137,7 +134,7 @@ if invia:
                             ],
                             model=mod,
                             temperature=0.2,
-                            max_tokens=450,
+                            max_tokens=420,
                         )
                         ricetta = chat_completion.choices[0].message.content
                         if ricetta:
@@ -148,8 +145,15 @@ if invia:
                 if ricetta:
                     st.divider()
                     st.markdown(ricetta)
+                    
+                    # --- FOOTER DI RASSICURAZIONE FISSO ---
+                    st.info("""
+                    💡 **Promemoria senza stress:**
+                    * **Spezie ed erbe:** sono solo un suggerimento. Usa pure quello che hai già a casa o che ti piace di più; se non ne hai, bastano un goccio d'olio e un pizzico di sale.
+                    * **Massima libertà:** se un passaggio ti sembra scomodo o complicato, prendi solo quello che ti serve. Puoi cuocere le verdure come consigliato e fare il resto nel modo più comodo per te (come scaldare la polenta o il riso in un semplice pentolino, o mangiare il pane così com'è). La cucina deve toglierti pensieri, non aggiungerne!
+                    """)
                 else:
-                    st.error("Errore momentaneo di generazione. Riprova tra pochi istanti.")
+                    st.error("Errore temporaneo. Riprova tra un istante.")
 
             except Exception as e:
                 st.error(f"Errore di connessione a Groq: {e}")
