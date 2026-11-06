@@ -6,7 +6,7 @@ st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 st.title("Che se magna")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, aromatica e su misura.")
 
-# --- MODULO FISSO (Nessuna chat, campi puliti per il paziente) ---
+# --- MODULO FISSO ---
 with st.form("modulo_ricetta"):
     st.subheader("1. Gli alimenti del tuo pasto")
     col_c, col_p, col_v = st.columns(3)
@@ -40,14 +40,14 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE ULTRA-RAPIDA CON GROQ (SUB-SECOND) ---
+# --- GENERAZIONE ULTRA-RAPIDA CON GROQ ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("🍳 Lo chef sta creando la ricetta..."):
+        with st.spinner("🍳 Preparazione della ricetta..."):
             
             prompt_utente = f"""
             DATI DEL PASTO:
@@ -59,11 +59,11 @@ if invia:
             - Metodi di cottura ammessi: {', '.join(metodi_scelti)}
 
             VINCOLI:
-            - Usa SOLO gli strumenti ammessi. Se il tempo è 10-15 min, ipotizza riso/cereali precotti o tagli sottili.
-            - Niente accostamenti sgradevoli (vietata la pasta con il pollo) e niente calcoli di calorie.
-            - Risposta diretta e sintetica, senza convenevoli.
+            - Usa SOLO gli strumenti ammessi. Se tempo <= 15 min, ipotizza cereali precotti.
+            - Vietata la pasta col pollo e niente calcoli calorici.
+            - Breve, pratico e diretto: massimo 130 parole.
 
-            FORMATO DA RISPETTARE:
+            STRUTTURA:
             🍽️ **[Nome Invitante del Piatto]**
             ⏱️ [Tempo] | 🍳 Strumento: [Uno tra gli ammessi]
             💡 *[1 frase sul gusto]*
@@ -72,33 +72,39 @@ if invia:
             - [Carboidrati, Proteine, Verdure]
             - [Spezie ed erbe consigliate]
 
-            👨‍🍳 **Passaggi Facili:** (Massimo 3 passaggi chiari)
+            👨‍🍳 **Passaggi Facili:** (Max 3 passaggi chiari)
             1. [Passo 1]
             2. [Passo 2]
             3. [Passo 3]
 
-            🌿 **Spezie, Erbette e Sostituzioni Furbe:**
-            - *[Spezia/erba usata]:* se non ce l'hai, usa [Alternativa comune]
-            - *[Condimento cremoso/legante]:* se non ce l'hai, usa [Alternativa comune]
+            🌿 **Spezie & Sostituzioni Furbe:**
+            - *[Spezia/erba usata]:* alternativa comune
+            - *[Condimento cremoso/legante]:* alternativa comune
             """
 
             try:
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 
+                # Rilevamento automatico del miglior modello Llama attivo sull'account
+                modelli_disponibili = [m.id for m in client.models.list().data]
+                preferiti = ["llama-3.1-8b-instant", "llama3-8b-8192", "mixtral-8x7b-32768"]
+                
+                modello_scelto = next((m for m in preferiti if m in modelli_disponibili), modelli_disponibili[0])
+
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
                             "role": "system",
-                            "content": "Sei uno chef nutrizionista esperto in alimentazione sostenibile, gustosa e priva di paranoie. Rispondi sempre in italiano, in modo conciso e appetitoso."
+                            "content": "Sei uno chef nutrizionista italiano specializzato in piatti veloci, aromatici e senza paranoie. Rispondi sempre in italiano."
                         },
                         {
                             "role": "user",
                             "content": prompt_utente
                         }
                     ],
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.5,
-                    max_tokens=450,
+                    model=modello_scelto,
+                    temperature=0.4,
+                    max_tokens=400,
                 )
 
                 ricetta = chat_completion.choices[0].message.content
