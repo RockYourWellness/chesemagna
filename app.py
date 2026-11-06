@@ -1,8 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
-
-# Configurazione API da Secrets
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+import requests
 
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
@@ -43,14 +40,14 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE RICETTA ---
+# --- CHIAMATA DIRETTA ULTRA-RAPIDA (HTTP REST) ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
         st.error("Seleziona almeno un metodo di cottura che sei disposto a usare.")
     else:
-        with st.spinner("Creazione della ricetta..."):
+        with st.spinner("Creo la tua ricetta in 2 secondi..."):
             
             prompt_rapido = f"""
             Sei uno chef nutrizionista pratico e conciso. Crea una ricetta sfiziosa e veloce.
@@ -60,10 +57,10 @@ if invia:
             - Tempo: {tempo} | Voglia: {voglia}
             - Strumenti concessi: {', '.join(metodi_scelti)}
 
-            REGOLE:
-            - Usa SOLO gli strumenti concessi. Se tempo <= 15 min, ipotizza cereali precotti.
-            - Niente paranoie caloriche o divieti assurdi (no pasta col pollo).
-            - Sii conciso e diretto: massimo 180 parole in totale, zero saluti o preamboli.
+            REGOLE TASSATIVE:
+            - Usa SOLO gli strumenti concessi. Se tempo <= 15 min, ipotizza cereali precotti o tagli sottili.
+            - Vietata la pasta col pollo e niente calcolo calorie.
+            - Massima brevità: massimo 160 parole in totale, zero saluti o introduzioni.
 
             STRUTTURA DA RISPETTARE:
             🍽️ **[Nome Piatto]**
@@ -71,36 +68,47 @@ if invia:
             💡 *[1 riga sul gusto]*
 
             🛒 **Ingredienti usati:**
-            - [Carboidrati, Proteine, Verdure indicati]
-            - [Spezie/erbe consigliate]
+            - [Carboidrati, Proteine, Verdure]
+            - [Spezie ed erbe consigliate]
 
-            👨‍🍳 **Passaggi Facili:** (Massimo 3 passaggi brevi)
+            👨‍🍳 **Passaggi Facili:** (Massimo 3 passaggi telegrafici)
             1. [Passo 1]
             2. [Passo 2]
             3. [Passo 3]
 
             🌿 **Spezie, Erbette e Sostituzioni Furbe:**
-            - *[Erba/Spezia usata]:* se non ce l'hai, usa [Alternativa comune]
-            - *[Elemento cremoso/legante]:* se non ce l'hai, usa [Alternativa pratica]
+            - *[Spezia/erba usata]:* alternativa con [Alternativa comune]
+            - *[Condimento cremoso]:* alternativa con [Alternativa pratica]
             """
 
-            try:
-                # Configurazione pulita e compatibile con tutti i modelli
-                model = genai.GenerativeModel(
-                    model_name="models/gemini-3.8-flash",
-                    generation_config={
-                        "temperature": 0.5,
-                        "max_output_tokens": 500,
+            api_key = st.secrets["GEMINI_API_KEY"]
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
+            
+            payload = {
+                "contents": [
+                    {
+                        "parts": [{"text": prompt_rapido}]
                     }
-                )
+                ],
+                "generationConfig": {
+                    "temperature": 0.4,
+                    "maxOutputTokens": 380
+                }
+            }
+
+            try:
+                # Timeout rigido a 8 secondi: risposta istantanea senza blocchi di rete
+                response = requests.post(url, json=payload, timeout=8)
                 
-                risposta = model.generate_content(
-                    prompt_rapido,
-                    request_options={"timeout": 60}
-                ).text
-                
-                st.divider()
-                st.markdown(risposta)
-                
+                if response.status_code == 200:
+                    dati = response.json()
+                    testo_ricetta = dati["candidates"][0]["content"]["parts"][0]["text"]
+                    st.divider()
+                    st.markdown(testo_ricetta)
+                else:
+                    st.error(f"Errore Google ({response.status_code}): {response.text}")
+                    
+            except requests.exceptions.Timeout:
+                st.error("I server di Google hanno impiegato più di 8 secondi. Riprova: al secondo tentativo risponde subito.")
             except Exception as e:
-                st.error(f"Errore: {e}")
+                st.error(f"Errore imprevisto: {e}")
