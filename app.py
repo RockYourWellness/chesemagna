@@ -48,7 +48,7 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE CON SUPPORTO PIATTI FREDDI/CRUDO ---
+# --- GENERAZIONE RICETTA (SENZA AGLIO E CON REGOLE TERMICHE) ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
@@ -66,46 +66,52 @@ if invia:
             - Voglia sensoriale: {voglia}
             - Metodi ammessi: {', '.join(metodi_scelti)}
 
-            VINCOLI RIGIDI E BUONSENSO:
-            1. OPZIONE "NESSUNA COTTURA (A CRUDO / PIATTO FREDDO)":
-               - Se tra i metodi c'è 'Nessuna cottura', o se è l'unica scelta: ZERO FONTI DI CALORE! Non nominare fornelli, forni o friggitrici.
-               - Crea un'insalatona strutturata, una bowl da assemblaggio, una tartare vegetale o un carpaccio fresco.
-               - Gestisci gli ingredienti a freddo: verdure tagliate finissime (marinate al limone o all'aceto se crude e dure come zucchine/carote), proteine sciacquate/sgocciolate o a dadini (tofu marinato con soia, legumi, uova se sode o formaggio), carboidrati freschi (pane, crostini, friselle o mais).
-               - Focus totale sull'EMULSIONE del condimento: consiglia una vinaigrette o salsa veloce (olio, acidità come limone/aceto/soia, senape o yogurt) ed erbe fresche per legare il tutto.
-            2. GESTIONE CARBOIDRATI READY-TO-EAT:
-               - Pane, crostini, friselle o gallette non vanno mai cotti dentro elettrodomestici: usali come accompagnamento a lato o come base d'appoggio.
-            3. STILE:
-               - Vietata la pasta con pollo e niente calcolo di calorie o grammature.
-               - Sintetico, pratico e gustoso: massimo 140 parole.
+            VINCOLI TASSATIVI:
+            1. DIVIETO TOTALE DELL'AGLIO:
+               - È SEVERAMENTE VIETATO usare aglio in qualsiasi forma (fresco, in polvere, spicchi o strane invenzioni). A molti pazienti non piace o causa problemi digestivi.
+               - Per dare sapore usa erbe mediterranee (basilico, origano, rosmarino, timo, prezzemolo), scorza di agrumi o spezie classiche (pepe, paprika dolce, origano, zenzero).
+            2. OPZIONE "NESSUNA COTTURA (A CRUDO / PIATTO FREDDO)":
+               - Se c'è 'Nessuna cottura' tra le scelte o è l'unica selezionata: NON nominare fornelli o calore.
+               - Proponi bowl, insalate ricche, tartare o carpacci vegetali.
+               - Cura l'emulsione del condimento: olio, acidità (limone, aceto o soia) e leganti freddi semplici (yogurt, senape).
+            3. CARBOIDRATI READY-TO-EAT:
+               - Pane fresco, crostini, friselle o gallette non vanno cotti negli elettrodomestici: usali a crudo come accompagnamento o base d'appoggio.
+            4. ORDINE TERMICO (SE SI CUOCE):
+               - Verdure crude e carni entrano per prime con tagli sottili. Ingredienti precotti (es. polenta, ceci) entrano solo negli ultimi 4 minuti per non seccare.
+            5. STILE:
+               - Niente accostamenti assurdi (no pasta con pollo), niente conteggi calorici.
+               - Massimo 130 parole, conciso e pratico.
 
-            STRUTTURA DA RISPETTARE:
+            STRUTTURA:
             🍽️ **[Nome Invitante del Piatto]**
-            ⏱️ [Tempo] | 🍳 Metodo: [Nessuna cottura (A crudo) OPPURE strumento usato]
-            💡 *[1 riga su equilibrio aromatico e consistenze]*
+            ⏱️ [Tempo] | 🍳 Metodo: [Nessuna cottura OPPURE strumento usato]
+            💡 *[1 riga sul gusto]*
 
             🛒 **Ingredienti e Tagli:**
-            - [Carboidrato: specificare se fresco a lato o base]
-            - [Proteina e Verdura con taglio funzionale, es. julienne, fettine a velo, cubetti]
-            - [Emulsione o condimento aromatico suggerito]
+            - [Carboidrato: specificare se a lato, base o cotto]
+            - [Proteina e Verdura con indicazione di taglio precisa]
+            - [Erbe aromatiche, spezie e condimento suggeriti (NO aglio)]
 
-            👨‍🍳 **Passaggi Rapidi (Zero Sforzo):** (Max 3 passaggi)
-            1. [Passo 1: taglio verdure / marinatura espressa a freddo]
-            2. [Passo 2: unione ingredienti e condimento con l'emulsione]
-            3. [Passo 3: abbinamento carboidrato, es. crostone o a lato]
+            👨‍🍳 **Passaggi Rapidi:** (Massimo 3 passaggi chiari)
+            1. [Passo 1]
+            2. [Passo 2]
+            3. [Passo 3]
 
-            🌿 **Spezie & Sostituzioni Furbe:**
-            - *[Ingrediente aromatico/erba]:* alternativa comune
-            - *[Condimento/salsa usata]:* alternativa comune
+            🌿 **Erbe & Sostituzioni:**
+            - *[Erba/spezia usata]:* alternativa comune
+            - *[Condimento usato]:* alternativa comune
             """
 
             try:
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 
+                # Esclusione modelli non testuali
                 modelli_disponibili = [
                     m.id for m in client.models.list().data 
                     if not any(escluso in m.id.lower() for escluso in ["whisper", "guard", "vision", "embed"])
                 ]
 
+                # Priorità ai modelli Llama
                 modelli_prioritari = sorted(
                     modelli_disponibili, 
                     key=lambda x: ("llama" in x.lower() or "mixtral" in x.lower() or "gemma" in x.lower()), 
@@ -120,9 +126,8 @@ if invia:
                                 {
                                     "role": "system",
                                     "content": (
-                                        "Sei uno chef nutrizionista esperto in alimentazione pratica e senza paranoie. "
-                                        "Se l'utente non vuole accendere fornelli, crei piatti freddi, bowl e insalate "
-                                        "aromatiche con emulsioni a crudo saporite. Rispondi sempre in italiano."
+                                        "Sei uno chef nutrizionista italiano. Crei ricette sane, saporite e concrete. "
+                                        "Non usi MAI l'aglio. Rispondi solo in italiano senza allucinazioni culinarie."
                                     )
                                 },
                                 {
