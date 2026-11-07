@@ -26,7 +26,7 @@ with st.form("modulo_ricetta"):
     with col_v:
         verdure = st.text_input("Verdure:", placeholder="Es. Zucchine, carote, pomodori, spinaci, finocchi")
 
-    # Menu a tendina multiplo per aromi e condimenti disponibili
+    # Menu a tendina multiplo per aromi e condimenti
     aggiunte_scelte = st.multiselect(
         "Aggiunte consentite che hai in casa (facoltativo - seleziona pure più elementi):",
         options=OPZIONI_AGGIUNTE,
@@ -66,7 +66,7 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE RICETTA CON AGGIUNTE INTEGRATE ---
+# --- GENERAZIONE RICETTA CON SELEZIONE DINAMICA DEL MODELLO ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
@@ -88,8 +88,8 @@ SELEZIONE DEL PAZIENTE:
 - Metodi concessi: {', '.join(metodi_scelti)}
 
 DIRETTIVE DI PREPARAZIONE:
-1. FEDELTÀ AGLI INGREDIENTI BASE: Usa ESCLUSIVAMENTE la proteina, il carboidrato e la verdura indicati. Se l'utente ha indicato ceci, usa solo ceci; se ha scritto tofu, usa solo tofu; se ha scritto uova, usa solo uova. Non introdurre MAI altre proteine o carboidrati inventati.
-2. VALORIZZAZIONE AGGIUNTE E VOGLIA: Se l'utente seleziona 'Speziato ed etnico' o seleziona spezie/condimenti specifici ({stringa_aggiunte}), sfrutta quegli elementi per dare carattere (es. tostatura del curry con le verdure, marinatura a freddo con soia, emulsione allo yogurt, semi tostati croccanti). Non usare mai aglio.
+1. FEDELTÀ AGLI INGREDIENTI BASE: Usa ESCLUSIVAMENTE la proteina, il carboidrato e la verdura indicati. Se l'utente ha indicato ceci, usa solo ceci; se ha scritto tofu, usa solo tofu; se ha scritto uova, usa solo uova. Non introdurre MAI altre proteine inventate.
+2. VALORIZZAZIONE AGGIUNTE E VOGLIA: Se l'utente seleziona 'Speziato ed etnico' o seleziona spezie/condimenti specifici ({stringa_aggiunte}), sfrutta quegli elementi per dare sapore (es. tostatura del curry con le verdure, marinatura a freddo con soia, emulsione allo yogurt, semi tostati croccanti). Non usare mai aglio.
 3. PRATICITÀ DEL CARBOIDRATO: Se il carboidrato è pane, crostini, friselle o gallette, va servito fresco a fette a lato o come base; non metterlo a cuocere negli elettrodomestici.
 4. CALORE E TEMPI:
    - Se il metodo è 'Nessuna cottura', crea un piatto freddo senza alcuna fonte di calore.
@@ -120,36 +120,63 @@ STRUTTURA DI RISPOSTA:
             try:
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 
-                chat_completion = client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "Sei un cuoco casalingo italiano e biologo nutrizionista. "
-                                "Parli un italiano impeccabile, semplice e familiare. "
-                                "Rispetti alla lettera gli ingredienti e gli aromi selezionati dall'utente senza inventarne altri."
-                            )
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt_utente
-                        }
-                    ],
-                    model="llama-3.1-8b-instant",
-                    temperature=0.45,
-                    max_tokens=450,
+                # 1. Filtra solo i modelli di testo escludendo audio e moderazione
+                modelli_disponibili = [
+                    m.id for m in client.models.list().data 
+                    if not any(escluso in m.id.lower() for escluso in ["whisper", "guard", "vision", "embed", "tts"])
+                ]
+
+                # 2. Ordina dando priorità ai modelli di testo per chat
+                modelli_prioritari = sorted(
+                    modelli_disponibili, 
+                    key=lambda x: ("llama" in x.lower() or "mixtral" in x.lower() or "gemma" in x.lower() or "qwen" in x.lower()), 
+                    reverse=True
                 )
 
-                ricetta = chat_completion.choices[0].message.content
-                st.divider()
-                st.markdown(ricetta)
-                
-                # Footer rassicurante fisso
-                st.info("""
-                💡 **Promemoria senza stress:**
-                * **Spezie ed erbe:** sono solo un suggerimento. Usa pure quello che hai già a casa o che ti piace di più; se non ne hai, bastano un goccio d'olio e un pizzico di sale.
-                * **Massima libertà:** se un passaggio ti sembra scomodo o complicato, prendi solo quello che ti serve. Puoi cuocere le verdure come consigliato e fare il resto nel modo più comodo per te (come scaldare la polenta o il riso in un semplice pentolino, o mangiare il pane così com'è). La cucina deve toglierti pensieri, non aggiungerne!
-                """)
+                ricetta = None
+                ultimo_errore = ""
+
+                # 3. Prova sequenziale del primo modello testuale funzionante
+                for mod in modelli_prioritari:
+                    try:
+                        chat_completion = client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": (
+                                        "Sei un cuoco casalingo italiano e biologo nutrizionista. "
+                                        "Parli un italiano impeccabile, semplice e familiare. "
+                                        "Rispetti alla lettera gli ingredienti e gli aromi selezionati dall'utente senza inventarne altri."
+                                    )
+                                },
+                                {
+                                    "role": "user",
+                                    "content": prompt_utente
+                                }
+                            ],
+                            model=mod,
+                            temperature=0.45,
+                            max_tokens=450,
+                        )
+                        ricetta = chat_completion.choices[0].message.content
+                        if ricetta:
+                            break
+                    except Exception as err:
+                        ultimo_errore = str(err)
+                        continue
+
+                if ricetta:
+                    st.divider()
+                    st.markdown(ricetta)
+                    
+                    # Box rassicurante fisso
+                    st.info("""
+                    💡 **Promemoria senza stress:**
+                    * **Spezie ed erbe:** sono solo un suggerimento. Usa pure quello che hai già a casa o che ti piace di più; se non ne hai, bastano un goccio d'olio e un pizzico di sale.
+                    * **Massima libertà:** se un passaggio ti sembra scomodo o complicato, prendi solo quello che ti serve. Puoi cuocere le verdure come consigliato e fare il resto nel modo più comodo per te (come scaldare la polenta o il riso in un semplice pentolino, o mangiare il pane così com'è). La cucina deve toglierti pensieri, non aggiungerne!
+                    """)
+                else:
+                    st.error(f"Nessun modello ha risposto. Modelli provati: {modelli_prioritari}. Errore: {ultimo_errore}")
 
             except Exception as e:
-                st.error(f"Dettaglio errore: {e}")
+                st.error(f"
