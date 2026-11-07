@@ -179,4 +179,4 @@ STRUTTURA DI RISPOSTA:
                     st.error(f"Nessun modello ha risposto. Modelli provati: {modelli_prioritari}. Errore: {ultimo_errore}")
 
             except Exception as e:
-                st.error(f"
+                st.error(f"Errore di connessione a Groq: {e}")
