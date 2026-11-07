@@ -98,4 +98,83 @@ DIRETTIVE DI COMBINAZIONE ED EQUILIBRIO:
 2. FEDELTÀ AGLI INGREDIENTI: Usa ESCLUSIVAMENTE la proteina, il carboidrato e la verdura scritti dal paziente. Mai aggiungere altre fonti proteiche inventate. Zero aglio.
 3. BUONSENSO SUI CARBOIDRATI: Se il carboidrato è pane, crostini, friselle o gallette, servilo a fette a lato o come base d'appoggio; non metterlo a cuocere negli elettrodomestici.
 4. TEMPERATURE E TEMPI:
-   - Se 'Nessuna cottura', crea un piatto
+   - Se 'Nessuna cottura', crea un piatto freddo senza alcuna fonte di calore.
+   - Se si cuoce, specifica minuti e temperatura esatta (°C in friggitrice/forno, o fiamma in padella). Le verdure crude entrano per prime tagliate sottili; i cibi già pronti solo alla fine.
+5. LINGUAGGIO: Italiano casalingo, limpido e rassicurante. Zero gergo da chef (niente tartare, carpacci, julienne, bowl).
+
+STRUTTURA:
+🍽️ **[Nome Semplice del Piatto]**
+⏱️ **Tempo:** [Minuti] | 🌡️ **Cottura:** [Temperatura in °C, fiamma, o 'A crudo'] | 🍳 **Metodo:** [Strumento]
+💡 *[1 frase sul profilo di sapore]*
+
+🛒 **Ingredienti:**
+- [Carboidrato: indicare se a fette a lato, base o cotto]
+- [Proteina e Verdura con taglio pratico: a dadini, a fettine, ecc.]
+- [Solo i condimenti selezionati dalla dispensa per la combinazione vincente]
+
+👨‍🍳 **Preparazione:** (Massimo 3 passaggi chiari e lineari)
+1. [Passo 1: taglio e preparazione]
+2. [Passo 2: cottura con minuti e temperatura, o condimento a crudo]
+3. [Passo 3: unione e impiattamento]
+
+🌿 **Alternative se ti manca qualcosa:**
+- *[Aroma/condimento scelto]:* puoi sostituirlo con [Alternativa comune]
+"""
+
+            try:
+                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                
+                modelli_disponibili = [
+                    m.id for m in client.models.list().data 
+                    if not any(escluso in m.id.lower() for escluso in ["whisper", "guard", "vision", "embed", "tts"])
+                ]
+
+                modelli_prioritari = sorted(
+                    modelli_disponibili, 
+                    key=lambda x: ("llama" in x.lower() or "mixtral" in x.lower() or "gemma" in x.lower() or "qwen" in x.lower()), 
+                    reverse=True
+                )
+
+                ricetta = None
+                ultimo_errore = ""
+
+                for mod in modelli_prioritari:
+                    try:
+                        chat_completion = client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": (
+                                        "Sei un cuoco casalingo italiano esperto di armonia gastronomica. "
+                                        "Selezioni solo i condimenti adatti senza mai fare intrugli caotici. "
+                                        "Rispetti rigidamente gli ingredienti dell'utente. Rispondi solo in italiano semplice."
+                                    )
+                                },
+                                {
+                                    "role": "user",
+                                    "content": prompt_utente
+                                }
+                            ],
+                            model=mod,
+                            temperature=0.4,
+                            max_tokens=450,
+                        )
+                        ricetta = chat_completion.choices[0].message.content
+                        if ricetta:
+                            break
+                    except Exception as err:
+                        ultimo_errore = str(err)
+                        continue
+
+                if ricetta:
+                    st.divider()
+                    
+                    # Box rassicurante compatto posizionato prima della ricetta
+                    st.info("💡 **Promemoria senza stress:** Spezie e passaggi sono solo uno spunto. Usa ciò che hai in casa e adatta le cotture come ti è più comodo: la cucina deve toglierti pensieri, non aggiungerne!")
+                    
+                    st.markdown(ricetta)
+                else:
+                    st.error(f"Nessun modello ha risposto: {ultimo_errore}")
+
+            except Exception as e:
+                st.error(f"Errore di connessione a Groq: {e}")
