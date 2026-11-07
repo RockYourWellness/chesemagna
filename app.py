@@ -3,7 +3,7 @@ from groq import Groq
 
 st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 
-st.title("Che se magna")
+st.title("🥗 Che se magna")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, saporita e senza complicazioni.")
 
 # Lista delle aggiunte disponibili in dispensa
