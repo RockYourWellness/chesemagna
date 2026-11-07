@@ -6,16 +6,33 @@ st.set_page_config(page_title="chesemagna", page_icon="🥗", layout="centered")
 st.title("Che se magna")
 st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la solita routine in una ricetta veloce, saporita e senza complicazioni.")
 
+# Lista delle aggiunte consentite
+OPZIONI_AGGIUNTE = [
+    "Basilico", "Prezzemolo", "Rosmarino", "Menta", "Salvia",
+    "Paprika", "Curry", "Peperoncino", "Pepe", "Mix di spezie",
+    "Yogurt bianco", "Succo di limone", "Aceto", "Aceto di mele",
+    "Senape", "Salsa di soia", "Olive", "Capperi",
+    "Semi di sesamo", "Semi di papavero", "Semi misti", "Lievito alimentare"
+]
+
 # --- MODULO FISSO ---
 with st.form("modulo_ricetta"):
     st.subheader("1. Gli alimenti del tuo pasto")
     col_c, col_p, col_v = st.columns(3)
     with col_c:
-        carboidrati = st.text_input("Carboidrati:", placeholder="Es. Pane, crostini, mais, riso precotto, friselle")
+        carboidrati = st.text_input("Carboidrati:", placeholder="Es. Pane, riso, patate, couscous, gallette")
     with col_p:
-        proteine = st.text_input("Proteine:", placeholder="Es. Tofu, ceci in scatola, tonno, uova, feta, pollo")
+        proteine = st.text_input("Proteine:", placeholder="Es. Tofu, ceci, uova, tonno, formaggio, lenticchie")
     with col_v:
-        verdure = st.text_input("Verdure:", placeholder="Es. Zucchine, carote, pomodori, insalata, spinaci")
+        verdure = st.text_input("Verdure:", placeholder="Es. Zucchine, carote, pomodori, spinaci, finocchi")
+
+    # Menu a tendina multiplo per aromi e condimenti disponibili
+    aggiunte_scelte = st.multiselect(
+        "Aggiunte consentite che hai in casa (facoltativo - seleziona pure più elementi):",
+        options=OPZIONI_AGGIUNTE,
+        default=[],
+        placeholder="Scegli erbe, spezie o condimenti da valorizzare..."
+    )
 
     st.subheader("2. Tempo e Voglia del momento")
     col_t, col_m = st.columns(2)
@@ -24,9 +41,9 @@ with st.form("modulo_ricetta"):
     with col_m:
         voglia = st.selectbox("Cosa ti andrebbe oggi?", [
             "Fresco e semplice", 
-            "Croccante e sfizioso", 
+            "Croccante e dorato", 
             "Morbido e saporito", 
-            "Profumato con erbe", 
+            "Profumato alle erbe", 
             "Rustico / Tradizionale"
         ])
 
@@ -48,112 +65,90 @@ with st.form("modulo_ricetta"):
 
     invia = st.form_submit_button("✨ Svolta la mia cena")
 
-# --- GENERAZIONE RICETTA CON FOOTER DI RASSICURAZIONE ---
+# --- GENERAZIONE RICETTA CON AGGIUNTE INTEGRATE ---
 if invia:
     if not (proteine or carboidrati or verdure):
         st.error("Inserisci almeno uno o due alimenti del tuo pasto per procedere.")
     elif not metodi_scelti:
-        st.error("Seleziona almeno un'opzione tra i metodi di cottura (anche solo 'A crudo').")
+        st.error("Seleziona almeno un'opzione tra i metodi di cottura.")
     else:
-        with st.spinner("🍳 Preparo una ricetta semplice e appetitosa..."):
+        with st.spinner("🍳 Preparo una ricetta calibrata sui tuoi ingredienti..."):
+            
+            stringa_aggiunte = ", ".join(aggiunte_scelte) if aggiunte_scelte else "Nessuna specifica (usa solo olio, sale e condimenti base da dispensa)"
             
             prompt_utente = f"""
-            DATI DEL PASTO:
-            - Carboidrati: {carboidrati}
-            - Proteine: {proteine}
-            - Verdure: {verdure}
-            - Tempo massimo: {tempo}
-            - Voglia: {voglia}
-            - Metodi ammessi: {', '.join(metodi_scelti)}
+SELEZIONE DEL PAZIENTE:
+- Carboidrato: {carboidrati if carboidrati else "Nessuno (non aggiungerne altri)"}
+- Proteina: {proteine if proteine else "Nessuna (non aggiungerne altre)"}
+- Verdura: {verdure if verdure else "Nessuna (non aggiungerne altre)"}
+- Aggiunte/Aromi scelti in dispensa: {stringa_aggiunte}
+- Tempo a disposizione: {tempo}
+- Voglia di oggi: {voglia}
+- Metodi concessi: {', '.join(metodi_scelti)}
 
-            VINCOLI TASSATIVI:
-            1. LINGUAGGIO SEMPLICE E CASALINGO (TARGET: TUTTI, ANCHE ANZIANI):
-               - VIETATO IL GERGO GOURMET: niente sashimi, tartare, carpaccio, bowl, dressing, julienne, brunoise.
-               - Solo parole comuni: "a fettine sottili", "a dadini", "a striscioline", "insalatona", "piatto freddo".
-               - Titoli semplici e chiari (es. "Insalata fresca con ceci e pomodori", "Zucchine in padella con pollo e pane").
-            2. DIVIETO TOTALE DELL'AGLIO:
-               - Nessun tipo di aglio. Usa basilico, origano, rosmarino, limone, prezzemolo, timo o spezie dolci.
-            3. CARBOIDRATI COME PANE O CROSTINI:
-               - Se l'utente scrive pane, fette, gallette o crostini, NON metterli a cuocere negli elettrodomestici. Servili a fette a lato per accompagnare.
-            4. OPZIONE "NESSUNA COTTURA / PIATTO FREDDO":
-               - Se selezionata, non accendere nulla: taglia le verdure e uniscile alle proteine condendo con olio, limone ed erbe.
-            5. ORDINE TERMICO (SE SI ACCENDE QUALCOSA):
-               - Verdure crude o carne entrano per prime tagliate piccole. Ingredienti precotti (ceci, polenta pronta) entrano solo negli ultimi minuti per scaldarli.
-            6. ZERO CALORIE, zero pasta con pollo, massimo 120 parole.
+DIRETTIVE DI PREPARAZIONE:
+1. FEDELTÀ AGLI INGREDIENTI BASE: Usa ESCLUSIVAMENTE la proteina, il carboidrato e la verdura indicati. Se l'utente ha indicato ceci, usa solo ceci; se ha scritto tofu, usa solo tofu; se ha scritto uova, usa solo uova. Non introdurre MAI altre proteine o carboidrati inventati.
+2. VALORIZZAZIONE AGGIUNTE: Se l'utente ha selezionato aromi/spezie/condimenti ({stringa_aggiunte}), sfrutta preferibilmente quelli per dare gusto, creare salse o emulsioni (es. salsa yogurt, tostatura semi, marinatura con soia/aceto). Non usare mai aglio.
+3. PRATICITÀ DEL CARBOIDRATO: Se il carboidrato è pane, crostini, friselle o gallette, va servito fresco a fette a lato o come base; non metterlo a cuocere negli elettrodomestici.
+4. CALORE E TEMPI:
+   - Se il metodo è 'Nessuna cottura', crea un piatto freddo senza alcuna fonte di calore.
+   - Se usi elettrodomestici, specifica minuti e temperatura o intensità di calore esatta (es. 180°C in friggitrice, o fiamma media in padella).
+   - Inserisci prima le verdure crude a fette sottili e solo alla fine gli ingredienti già cotti o in scatola per scaldarli.
+5. LINGUAGGIO: Italiano casalingo, limpido e rassicurante. Nessun termine tecnico gourmet (niente brunoise, julienne, tartare, sashimi, bowl).
 
-            FORMATO DI RISPOSTA:
-            🍽️ **[Nome Semplice e Familiare del Piatto]**
-            ⏱️ [Tempo] | 🍳 Strumento: [Strumento usato o "Nessuna cottura"]
-            💡 *[1 frase rassicurante sul sapore]*
+STRUTTURA DI RISPOSTA:
+🍽️ **[Nome Semplice del Piatto]**
+⏱️ **Tempo:** [Minuti] | 🌡️ **Cottura:** [Temperatura in gradi °C, fiamma, oppure 'A crudo'] | 🍳 **Metodo:** [Strumento]
+💡 *[1 frase accattivante sul sapore]*
 
-            🛒 **Ingredienti da preparare:**
-            - [Carboidrato: indicare se va a fette nel piatto a lato o cotto]
-            - [Proteina e Verdura con taglio pratico: a dadini, a fettine, ecc.]
-            - [Condimento semplice: olio, limone, erbe a piacere]
+🛒 **Ingredienti:**
+- [Carboidrato: indicare se a fette a lato, base o cotto]
+- [Proteina e Verdura con taglio pratico: a dadini, a fettine sottili, ecc.]
+- [Aromi e condimenti scelti utilizzati]
 
-            👨‍🍳 **Come prepararlo:** (Massimo 3 passaggi chiarissimi)
-            1. [Passo 1: taglio]
-            2. [Passo 2: cottura o unione a freddo]
-            3. [Passo 3: come servire a tavola]
+👨‍🍳 **Preparazione:** (Massimo 3 passaggi chiari e lineari)
+1. [Passo 1: taglio e preparazione]
+2. [Passo 2: cottura con minuti e temperatura, oppure emulsione/condimento a freddo]
+3. [Passo 3: unione e impiattamento]
 
-            🌿 **Alternative pratiche se manca qualcosa:**
-            - *[Erba usata]:* se non ce l'hai, usa [Alternativa comunissima]
-            - *[Condimento]:* se non ce l'hai, usa [Alternativa comunissima]
-            """
+🌿 **Alternative se ti manca qualcosa:**
+- *[Aroma/spezia usata]:* puoi sostituirla con [Altra opzione comune]
+- *[Condimento usato]:* puoi sostituirlo con [Altro condimento comune]
+"""
 
             try:
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 
-                modelli_disponibili = [
-                    m.id for m in client.models.list().data 
-                    if not any(escluso in m.id.lower() for escluso in ["whisper", "guard", "vision", "embed"])
-                ]
-
-                modelli_prioritari = sorted(
-                    modelli_disponibili, 
-                    key=lambda x: ("llama" in x.lower() or "mixtral" in x.lower() or "gemma" in x.lower()), 
-                    reverse=True
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "Sei un cuoco casalingo italiano e biologo nutrizionista. "
+                                "Parli un italiano impeccabile, semplice e familiare. "
+                                "Rispetti alla lettera gli ingredienti e gli aromi selezionati dall'utente senza inventarne altri."
+                            )
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt_utente
+                        }
+                    ],
+                    model="llama-3.1-8b-instant",
+                    temperature=0.45,
+                    max_tokens=450,
                 )
 
-                ricetta = None
-                for mod in modelli_prioritari:
-                    try:
-                        chat_completion = client.chat.completions.create(
-                            messages=[
-                                {
-                                    "role": "system",
-                                    "content": (
-                                        "Sei un cuoco di casa italiano, pratico e rassicurante. "
-                                        "Spieghi tutto con parole semplici e familiari. Non usi mai l'aglio. Rispondi in italiano."
-                                    )
-                                },
-                                {
-                                    "role": "user",
-                                    "content": prompt_utente
-                                }
-                            ],
-                            model=mod,
-                            temperature=0.2,
-                            max_tokens=420,
-                        )
-                        ricetta = chat_completion.choices[0].message.content
-                        if ricetta:
-                            break
-                    except Exception:
-                        continue
-
-                if ricetta:
-                    st.divider()
-                    st.markdown(ricetta)
-                    
-                    # --- FOOTER DI RASSICURAZIONE FISSO ---
-                    st.info("""
-                    💡 **Promemoria senza stress:**
-                    * **Spezie ed erbe:** sono solo un suggerimento. Usa pure quello che hai già a casa o che ti piace di più; se non ne hai, bastano un goccio d'olio e un pizzico di sale.
-                    * **Massima libertà:** se un passaggio ti sembra scomodo o complicato, prendi solo quello che ti serve. Puoi cuocere le verdure come consigliato e fare il resto nel modo più comodo per te (come scaldare la polenta o il riso in un semplice pentolino, o mangiare il pane così com'è). La cucina deve toglierti pensieri, non aggiungerne!
-                    """)
-                else:
-                    st.error("Errore temporaneo. Riprova tra un istante.")
+                ricetta = chat_completion.choices[0].message.content
+                st.divider()
+                st.markdown(ricetta)
+                
+                # Footer rassicurante fisso
+                st.info("""
+                💡 **Promemoria senza stress:**
+                * **Spezie ed erbe:** sono solo un suggerimento. Usa pure quello che hai già a casa o che ti piace di più; se non ne hai, bastano un goccio d'olio e un pizzico di sale.
+                * **Massima libertà:** se un passaggio ti sembra scomodo o complicato, prendi solo quello che ti serve. Puoi cuocere le verdure come consigliato e fare il resto nel modo più comodo per te (come scaldare la polenta o il riso in un semplice pentolino, o mangiare il pane così com'è). La cucina deve toglierti pensieri, non aggiungerne!
+                """)
 
             except Exception as e:
-                st.error(f"Errore di connessione a Groq: {e}")
+                st.error(f"Dettaglio errore: {e}")
