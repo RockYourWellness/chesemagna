@@ -44,6 +44,7 @@ with st.form("modulo_ricetta"):
             "Croccante e dorato", 
             "Morbido e saporito", 
             "Profumato alle erbe", 
+            "Speziato ed etnico",
             "Rustico / Tradizionale"
         ])
 
@@ -88,13 +89,13 @@ SELEZIONE DEL PAZIENTE:
 
 DIRETTIVE DI PREPARAZIONE:
 1. FEDELTÀ AGLI INGREDIENTI BASE: Usa ESCLUSIVAMENTE la proteina, il carboidrato e la verdura indicati. Se l'utente ha indicato ceci, usa solo ceci; se ha scritto tofu, usa solo tofu; se ha scritto uova, usa solo uova. Non introdurre MAI altre proteine o carboidrati inventati.
-2. VALORIZZAZIONE AGGIUNTE: Se l'utente ha selezionato aromi/spezie/condimenti ({stringa_aggiunte}), sfrutta preferibilmente quelli per dare gusto, creare salse o emulsioni (es. salsa yogurt, tostatura semi, marinatura con soia/aceto). Non usare mai aglio.
+2. VALORIZZAZIONE AGGIUNTE E VOGLIA: Se l'utente seleziona 'Speziato ed etnico' o seleziona spezie/condimenti specifici ({stringa_aggiunte}), sfrutta quegli elementi per dare carattere (es. tostatura del curry con le verdure, marinatura a freddo con soia, emulsione allo yogurt, semi tostati croccanti). Non usare mai aglio.
 3. PRATICITÀ DEL CARBOIDRATO: Se il carboidrato è pane, crostini, friselle o gallette, va servito fresco a fette a lato o come base; non metterlo a cuocere negli elettrodomestici.
 4. CALORE E TEMPI:
    - Se il metodo è 'Nessuna cottura', crea un piatto freddo senza alcuna fonte di calore.
    - Se usi elettrodomestici, specifica minuti e temperatura o intensità di calore esatta (es. 180°C in friggitrice, o fiamma media in padella).
    - Inserisci prima le verdure crude a fette sottili e solo alla fine gli ingredienti già cotti o in scatola per scaldarli.
-5. LINGUAGGIO: Italiano casalingo, limpido e rassicurante. Nessun termine tecnico gourmet (niente brunoise, julienne, tartare, sashimi, bowl).
+5. LINGUAGGIO: Italiano casalingo, limpido e rassicurante. Nessun termine tecnico da ristorante (niente brunoise, julienne, tartare, sashimi, bowl).
 
 STRUTTURA DI RISPOSTA:
 🍽️ **[Nome Semplice del Piatto]**
