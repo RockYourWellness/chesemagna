@@ -10,7 +10,7 @@ st.markdown("Componi il tuo pasto con gli alimenti del piano: trasformeremo la s
 OPZIONI_AGGIUNTE = [
     "Basilico", "Prezzemolo", "Rosmarino", "Menta", "Salvia",
     "Paprika", "Curry", "Peperoncino", "Pepe", "Mix di spezie",
-    "Yogurt bianco", "Succo di limone", "Aceto", "Aceto di mele",
+    "Passata di pomodoro", "Yogurt bianco", "Succo di limone", "Aceto", "Aceto di mele",
     "Senape", "Salsa di soia", "Olive", "Capperi",
     "Semi di sesamo", "Semi di papavero", "Semi misti", "Lievito alimentare"
 ]
@@ -91,15 +91,16 @@ DIRETTIVE DI COMBINAZIONE ED EQUILIBRIO:
 1. GESTIONE DELLA DISPENSA (ARMONIA DI SAPORI):
    - Gli aromi indicati ({stringa_aggiunte}) sono una DISPENSA DI PARTENZA, NON una lista da usare tutta insieme.
    - Scegli SOLTANTO 1-2 (massimo 3) ingredienti che legano alla perfezione in base alla 'Voglia' scelta:
+     * 'Rustico / Tradizionale': perfetta la passata di pomodoro con erbe mediterranee (basilico, origano).
      * 'Etnico / Speziato': valorizza soia e sesamo, oppure curry e yogurt/limone.
      * 'Fresco e semplice': punta su limone ed erbe fresche (menta o basilico).
-     * 'Morbido e cremoso': usa yogurt o senape per una salsa rapida.
-   - Vietati accostamenti sgradevoli o caotici (es. no curry insieme a origano e soia).
+     * 'Morbido e cremoso': usa yogurt, passata o senape per legare gli ingredienti.
+   - Vietati accostamenti sgradevoli o caotici.
 2. FEDELTÀ AGLI INGREDIENTI: Usa ESCLUSIVAMENTE la proteina, il carboidrato e la verdura scritti dal paziente. Mai aggiungere altre fonti proteiche inventate. Zero aglio.
 3. BUONSENSO SUI CARBOIDRATI: Se il carboidrato è pane, crostini, friselle o gallette, servilo a fette a lato o come base d'appoggio; non metterlo a cuocere negli elettrodomestici.
 4. TEMPERATURE E TEMPI:
    - Se 'Nessuna cottura', crea un piatto freddo senza alcuna fonte di calore.
-   - Se si cuoce, specifica minuti e temperatura esatta (°C in friggitrice/forno, o fiamma in padella). Le verdure crude entrano per prime tagliate sottili; i cibi già pronti solo alla fine.
+   - Se si cuoce, specifica minuti e temperatura esatta (°C in friggitrice/forno, o fiamma in padella). Le verdure crude entrano per prime tagliate sottili; i cibi già pronti solo alla fine. Se si usa la passata di pomodoro in padella, indicala per insaporire e stufare le verdure o la proteina.
 5. LINGUAGGIO: Italiano casalingo, limpido e rassicurante. Zero gergo da chef (niente tartare, carpacci, julienne, bowl).
 
 STRUTTURA:
@@ -169,7 +170,7 @@ STRUTTURA:
                 if ricetta:
                     st.divider()
                     
-                    # Box rassicurante compatto posizionato prima della ricetta
+                    # Box rassicurante compatto prima della ricetta
                     st.info("💡 **Promemoria senza stress:** Spezie e passaggi sono solo uno spunto. Usa ciò che hai in casa e adatta le cotture come ti è più comodo: la cucina deve toglierti pensieri, non aggiungerne!")
                     
                     st.markdown(ricetta)
